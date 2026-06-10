@@ -1,7 +1,7 @@
 import { WebSocketServer, WebSocket } from "ws";
 import { createServer } from "http";
 
-const WISP_URLS = {
+const WSS_URLS = {
     cf: [
         "wss://scramjet-server-wisp.sigmasigmaonthewallwhoisthe2.workers.dev/wisp/",
         "wss://scramjet-server-wisp-1.sigmasigmaonthewallwhoisthe2.workers.dev/wisp/",
@@ -16,14 +16,14 @@ const WISP_URLS = {
     ],
 };
 
-function getRandomWisp(pool) {
-    const urls = WISP_URLS[pool] ?? WISP_URLS.cf;
+function getRandomWss(pool) {
+    const urls = WSSURLS[pool] ?? WSS_URLS.cf;
     return urls[Math.floor(Math.random() * urls.length)];
 }
 
 const server = createServer((req, res) => {
     res.writeHead(200);
-    res.end("Proxy server running");
+    res.end("Server is running");
 });
 
 const wss = new WebSocketServer({ server });
@@ -31,8 +31,8 @@ const wss = new WebSocketServer({ server });
 wss.on("connection", (client, req) => {
     const params = new URLSearchParams(req.url.includes("?") ? req.url.split("?")[1] : "");
     const pool = params.get("pool") === "public" ? "public" : "cf";
-    const wispUrl = getRandomWisp(pool);
-    const upstream = new WebSocket(wispUrl);
+    const wssUrl = getRandomWss(pool);
+    const upstream = new WebSocket(wssUrl);
     upstream.binaryType = "arraybuffer";
 
     upstream.on("open", () => {
@@ -56,6 +56,5 @@ wss.on("connection", (client, req) => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-    console.log(`Proxy server listening on port ${PORT}`);
-
+    console.log(`Server listening on port ${PORT}`);
 });
