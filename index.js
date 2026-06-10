@@ -1,6 +1,8 @@
 import { WebSocketServer, WebSocket } from "ws";
 import { createServer } from "http";
 
+console.log("tell me somehting")
+
 const WSS_URLS = {
     cf: [
         "wss://scramjet-server-wisp.sigmasigmaonthewallwhoisthe2.workers.dev/wisp/",
