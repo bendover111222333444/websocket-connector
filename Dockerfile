@@ -5,4 +5,4 @@ RUN npm install
 COPY . .
 RUN ls -la
 EXPOSE 3000
-CMD ["node", "index.js"]
+CMD ["sh", "-c", "echo 'starting node' && node index.js"]
