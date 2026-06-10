@@ -48,6 +48,7 @@ const server = createServer((req, res) => {
 });
 
 server.on("upgrade", (req, socket, head) => {
+    console.log("upgrade request received:", req.url, req.headers);
     wss.handleUpgrade(req, socket, head, (ws) => {
         wss.emit("connection", ws, req);
     });
