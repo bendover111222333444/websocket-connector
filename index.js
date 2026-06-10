@@ -47,7 +47,13 @@ const server = createServer((req, res) => {
     res.end("Server is running");
 });
 
-const wss = new WebSocketServer({ server });
+server.on("upgrade", (req, socket, head) => {
+    wss.handleUpgrade(req, socket, head, (ws) => {
+        wss.emit("connection", ws, req);
+    });
+});
+
+const wss = new WebSocketServer({ noServer: true });
 
 wss.on("connection", (client, req) => {
     const params = new URLSearchParams(req.url.includes("?") ? req.url.split("?")[1] : "");
