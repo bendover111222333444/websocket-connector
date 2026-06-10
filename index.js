@@ -43,6 +43,11 @@ function getRandomWss(pool) {
 }
 
 const server = createServer((req, res) => {
+    if (req.url === '/health') {
+        res.writeHead(200);
+        res.end('ok');
+        return;
+    }
     res.writeHead(200);
     res.end("Server is running");
 });
