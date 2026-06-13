@@ -29,8 +29,8 @@ async function refreshPools() {
         const results = await Promise.all(WSS_URLS[pool].map(async url => ({ url, works: await testWispUrl(url) })));
         const dead = results.filter(r => !r.works).map(r => r.url);
         workingUrls[pool] = results.filter(r => r.works).map(r => r.url);
-        if (dead.length > 0) console.log(`[wisp] dead ${pool}:, dead`);
-        console.log(`[wisp] ${pool}: ${workingUrls[pool].length}/${WSS_URLS[pool].length} online``);
+        if (dead.length > 0) console.log(`[wisp] dead ${pool}: ${dead}`);
+        console.log(`[wisp] ${pool}: ${workingUrls[pool].length}/${WSS_URLS[pool].length} online`);
     }
 }
 function getRandomWss(pool) {
