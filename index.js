@@ -1,10 +1,10 @@
-import { WebSocketServer, WebSocket } from "ws";
-import { createServer } from "http";
+export default {
+  async fetch(req, env) {
+    const url = new URL(req.url);
+    const pool = url.searchParams.get("pool") === "public" ? "public" : "cf";
 
-console.log("Server starting...");
-
-const WSS_URLS = {
-    cf: [
+    const WSS_URLS = {
+      cf: [
         "wss://scramjet-server-wisp.sigmasigmaonthewallwhoisthe2.workers.dev/wisp/",
         "wss://scramjet-server-wisp-1.sigmasigmaonthewallwhoisthe2.workers.dev/wisp/",
         "wss://scramjet-server-wisp-2.sigmasigmaonthewallwhoisthe2.workers.dev/wisp/",
@@ -12,101 +12,29 @@ const WSS_URLS = {
         "wss://scramjet-server-wisp-4.sigmasigmaonthewallwhoisthe2.workers.dev/wisp/",
         "wss://scramjet-server-wisp-5.sigmasigmaonthewallwhoisthe2.workers.dev/wisp/",
     ],
-    public: [
+      public: [
         "wss://anura.pro/wisp/",
         "wss://mizumath.com/wisp/",
-    ],
+      ],
+    };
+
+    const urls = WSS_URLS[pool];
+    const upstreamUrl = urls[Math.floor(Math.random() * urls.length)];
+
+    const [client, clientWs] = Object.values(new WebSocketPair());
+    const upstream = await fetch(upstreamUrl, {
+      headers: { Upgrade: "websocket" },
+    });
+    const upstreamWs = upstream.webSocket;
+
+    clientWs.accept();
+    upstreamWs.accept();
+
+    clientWs.addEventListener("message", (e) => upstreamWs.send(e.data));
+    upstreamWs.addEventListener("message", (e) => clientWs.send(e.data));
+    clientWs.addEventListener("close", () => upstreamWs.close());
+    upstreamWs.addEventListener("close", () => clientWs.close());
+
+    return new Response(null, { status: 101, webSocket: client });
+  }
 };
-
-const workingUrls = { cf: [], public: [] };
-
-async function testWispUrl(url) {
-    return new Promise((resolve) => {
-        const ws = new WebSocket(url);
-        const timeout = setTimeout(() => {
-            ws.terminate();
-            resolve(false);
-        }, 3000);
-        ws.on("open", () => {
-            clearTimeout(timeout);
-            ws.close();
-            resolve(true);
-        });
-        ws.on("error", () => {
-            clearTimeout(timeout);
-            resolve(false);
-        });
-    });
-}
-
-async function refreshPools() {
-    for (const pool of ["cf", "public"]) {
-        const results = await Promise.all(
-            WSS_URLS[pool].map(async (url) => ({ url, works: await testWispUrl(url) }))
-        );
-        const dead = results.filter((r) => !r.works).map((r) => r.url);
-        workingUrls[pool] = results.filter((r) => r.works).map((r) => r.url);
-        if (dead.length > 0) console.log(`[wisp] dead ${pool}: ${dead.join(", ")}`);
-        console.log(`[wisp] ${pool}: ${workingUrls[pool].length}/${WSS_URLS[pool].length} online`);
-    }
-}
-
-function getRandomWss(pool) {
-    const urls = workingUrls[pool]?.length > 0 ? workingUrls[pool] : WSS_URLS[pool];
-    return urls[Math.floor(Math.random() * urls.length)];
-}
-
-const server = createServer((req, res) => {
-    if (req.url === "/health") {
-        res.writeHead(200);
-        res.end("ok");
-        return;
-    }
-    res.writeHead(200);
-    res.end("Server is running");
-});
-
-const wss = new WebSocketServer({ noServer: true });
-
-server.on("upgrade", (req, socket, head) => {
-    console.log("Upgrade request received:", req.url);
-    wss.handleUpgrade(req, socket, head, (ws) => {
-        wss.emit("connection", ws, req);
-    });
-});
-
-wss.on("connection", (client, req) => {
-    const params = new URLSearchParams(req.url.includes("?") ? req.url.split("?")[1] : "");
-    const pool = params.get("pool") === "public" ? "public" : "cf";
-    const wssUrl = getRandomWss(pool);
-
-    console.log(`[wisp] new connection → ${pool} → ${wssUrl}`);
-
-    const upstream = new WebSocket(wssUrl);
-    upstream.binaryType = "arraybuffer";
-
-    upstream.on("open", () => {
-        client.on("message", (data) => {
-            if (upstream.readyState === WebSocket.OPEN) upstream.send(data);
-        });
-        client.on("close", () => upstream.close());
-        client.on("error", () => upstream.close());
-    });
-
-    upstream.on("message", (data) => {
-        if (client.readyState === WebSocket.OPEN) client.send(data);
-    });
-    upstream.on("close", () => client.close());
-    upstream.on("error", (err) => {
-        console.error(`[wisp] upstream error: ${err.message}`);
-        client.close();
-    });
-});
-
-const PORT = process.env.PORT || 3000;
-
-server.listen(PORT, async () => {
-    console.log(`Server listening on port ${PORT}`);
-    await refreshPools();
-    setInterval(refreshPools, 5 * 60 * 1000);
-});
