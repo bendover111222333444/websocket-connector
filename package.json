@@ -1,11 +1,17 @@
 {
-    "name": "websocket-connector",
-    "version": "1.0.0",
-    "type": "module",
-    "scripts": {
-        "start": "node index.js"
-    },
-    "dependencies": {
-        "ws": "^8.18.0"
-    }
+  "name": "websocket-connector",
+  "version": "1.0.0",
+  "description": "websocket-connector",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "publish": "wrangler deploy",
+    "tail": "wrangler tail"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  }
 }
