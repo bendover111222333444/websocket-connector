@@ -140,9 +140,9 @@ wss.on("connection", (client, req) => {
 
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT;
 
-server.listen(PORT, async () => {
+server.listen(PORT, "::", async () => {
 
     console.log(`Server listening on port ${PORT}`);
     await refreshPools();
